@@ -1,4 +1,4 @@
-name: first-deployment
+name: first-basic-workflow
 
 # Manual trigger
 on: [workflow_dispatch]
