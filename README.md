@@ -33,7 +33,13 @@ ${{ secrets.NAME_OF_THE_SECRET }}
 
 # Creating workload identity
 
-First, create Microsoft Entra Id application with AZ CLI command:
+Workload identities are a feature of Microsoft Entra ID, which is a global identity service. Many companies use Microsoft Entra ID, and each company is called a tenant.
+
+By letting know Microsoft Entra ID about application, we create application registration in Microsoft Entra ID. An application registration represents the application in Microsoft Entra ID.
+
+An appliciton registration can have federated credentials associated with it. They enable supported services (such as GitHub) to use a Microsoft Entra ID application. This is effectively saying Microsoft Entra ID and supported service (like GitHub) to trust each other - this trust is called federation.
+
+To create workload identity, first, create Microsoft Entra Id application with AZ CLI command:
 ```
 $result = az ad app create --display-name 'github-workflow'
 ```
@@ -42,7 +48,7 @@ It returns data in JSON - we need `appId` and `id` properties:
   "appId": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
   "id": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
 ```
-Then use those values to execute command to create workload identity - below we use `id`
+Then use those values to execute command to create federated identity - below we use `$id`
 ```
 az ad app federated-credential create `
    --id $id `
@@ -123,4 +129,57 @@ By default, GitHub Actions allows multiple instance of your workflow to run simu
 To change that default behaviour, we can use `concurrency` keyword. It needs to be specified to a string that is consistent across all runs of the workflow. Usually it's just hardcoded string:
 ```
 concurrency: MyWorkflowWithLimitedConcurrency
+```
+
+## Authenticating from workflow
+
+To request token in a workflow, we need to add `permissions` property:
+```
+permissions:
+  id-token: write
+  contents: read
+```
+
+# Controlling jobs execution in workflow
+
+If one job can be executed only when other job finishes successfully, we can express this with `needs: jobName`, for example:
+```
+name: learn-github-actions
+on: [push]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Here is where you'd perform the validation steps."
+  deployUS: 
+    runs-on: windows-latest
+    needs: validate
+    steps:
+      - run: echo "Here is where you'd perform the steps to deploy to the US region."
+  deployEurope: 
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - run: echo "Here is where you'd perform the steps to deploy to the European region."
+```
+If we need to rollback some changes when the pipeline fails, we can apply it using `if` keyword:
+```
+name: learn-github-actions
+on: [push]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Here is where you'd perform the validation steps."
+  deploy: 
+    runs-on: windows-latest
+    needs: validate
+    steps:
+      - run: echo "Here is where you'd perform the steps to deploy."
+  rollback: 
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ failure() }}
+    steps:
+      - run: echo "Here is where you'd perform the steps to roll back a failure."
 ```
