@@ -32,7 +32,7 @@ jobs:
     - uses: azure/arm-deploy@v1
       name: Run preflight validation
       with:
-        deploymaneMode: Validate
+        deploymentMode: Validate
         deploymentName: ${{ github.run_number }}
         resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP_NAME}}
         parameters: environmentType=${{ env.ENVIRONMENT }}
