@@ -183,3 +183,7 @@ jobs:
     steps:
       - run: echo "Here is where you'd perform the steps to roll back a failure."
 ```
+
+# Environments
+
+In GitHub web page there is possibility to create *environments* (similairly to Azure DevOps).
