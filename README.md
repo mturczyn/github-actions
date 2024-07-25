@@ -1,2 +1,3 @@
-# github-actions
-Repostiory to learn how to deploy code and infrastructure with Github Actions.
+# Intro and basic info
+
+Github stores its default workflows in special directory `.github\workflows`.
