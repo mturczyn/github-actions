@@ -189,3 +189,16 @@ jobs:
 In GitHub web page there is possibility to create *environments* (similairly to Azure DevOps).
 
 In workflow, we reference the environment by `environment: Prod`.
+
+# Rollback jobs
+
+To rollback changes we could use following job:
+```
+rollback: 
+  runs-on: ubuntu-latest
+  needs: smoke-test
+  if: ${{ always() && needs.smoke-test.result == 'failure' }}
+  steps:
+  - run: |
+      echo "Performing rollback steps..."
+```
