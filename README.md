@@ -33,7 +33,7 @@ ${{ secrets.NAME_OF_THE_SECRET }}
 
 # Creating workload identity
 
-First, create execute below AZ CLI command:
+First, create Microsoft Entra Id application with AZ CLI command:
 ```
 $result = az ad app create --display-name 'github-workflow'
 ```
@@ -48,11 +48,15 @@ az ad app federated-credential create `
    --id $id `
    --parameters '{\"name\":\"github-workflow\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$mturczyn/$github-actions:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}'
 ```
-Lastly, we need to grant workload identity access to our Azure resource group:
+Create service principal in Azure:
+
 ```
-az ad sp create --id $id
+az ad sp create --id $appId
+```
+Then we need to capture `appId` of above (let's assume we have `$servicePrincipalId` with that value) created service principal and use it below to create role assignment in Azure:
+```
 az role assignment create `
-   --assignee $appId `
+   --assignee $servicePrincipalId `
    --role Contributor `
    --scope '/subscriptions/6c031f3a-0aa5-480d-b2ec-272b24779509/resourceGroups/intrinsic-rg'
 ```
