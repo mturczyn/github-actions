@@ -187,3 +187,5 @@ jobs:
 # Environments
 
 In GitHub web page there is possibility to create *environments* (similairly to Azure DevOps).
+
+In workflow, we reference the environment by `environment: Prod`.

@@ -9,7 +9,7 @@ permissions:
 
 env:
   AZURE_RESOURCE_GROUP_NAME: intrinsic-rg
-  ENVIRONMENT: nonprod
+  ENVIRONMENT_TYPE: nonprod
 
 jobs:
   lint:
@@ -35,7 +35,7 @@ jobs:
         deploymentMode: Validate
         deploymentName: ${{ github.run_number }}
         resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP_NAME}}
-        parameters: environmentType=${{ env.ENVIRONMENT }}
+        parameters: environmentType=${{ env.ENVIRONMENT_TYPE }}
         template: ./deploy/main.bicep
   
   preview:
@@ -77,4 +77,4 @@ jobs:
         deploymentName: ${{ github.run_number }}
         resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP_NAME }}
         template: ./deploy/main.bicep
-        parameters: environmentType=${{ env.ENVIRONMENT }}
+        parameters: environmentType=${{ env.ENVIRONMENT_TYPE }}
