@@ -1,0 +1,32 @@
+name: build-website
+
+on:
+  workflow_call:
+    
+jobs:
+  build-application:
+    name: Build application
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0
+      
+    - name: Build publishable website
+      run: |
+        dotnet publish --configuration Release
+      working-directory: ./src/SampleWebApplication
+
+    - name: Zip publishable website
+      run: |
+        zip -r publish.zip .
+      working-directory: ./src/SampleWebApplication/bin/Release/net8.0/publish
+
+    - name: Upload website as workflow artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: website
+        path: ./src/SampleWebApplication/bin/Release/net8.0/publish/publish.zip

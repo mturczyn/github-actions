@@ -257,3 +257,65 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 ```
+
+# Output variables values across workflow
+
+To define output variable from one job, we need to define 
+```
+  outputs:
+    appServiceAppName: ${{ steps.deploy.outputs.appServiceAppName }}
+```
+where `deploy` is `id` of the step (we also need to define that `id`), full example:
+```
+job1:
+  runs-on: ubuntu-latest
+  outputs:
+    appServiceAppName: ${{ steps.deploy.outputs.appServiceAppName }}
+  steps:
+  - uses: actions/checkout@v3
+  - uses: azure/login@v1
+    name: Sign in to Azure
+    with:
+      client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  - uses: azure/arm-deploy@v1
+    id: deploy
+    name: Deploy Bicep file
+    with:
+      failOnStdErr: false
+      deploymentName: ${{ github.run_number }}
+      resourceGroupName: Playground1
+      template: ./deploy/main.bicep
+```
+In later job we can reference this output variable with `needs.job1.outputs.appServiceAppName` which requires defining also `needs: job1` property. Full example:
+```
+job2:
+  needs: job1
+  runs-on: ubuntu-latest
+  steps:
+  - run: |
+      echo "${{needs.job1.outputs.appServiceAppName}}"
+```
+
+# Workflow artifacts
+
+*Workflow artifacts* provide a way to store files in GitHub Actions, and they're associated with the particular run of your workflow. You use the `actions/upload-artifact` workflow action to instruct GitHub Actions to upload a file or folder from the runner's file system as a workflow artifact:
+```
+- name: Upload folder as a workflow artifact
+  uses: actions/upload-artifact@v3
+  with:
+    name: my-artifact-name
+    path: ./my-folder
+```
+
+Use the `actions/download-artifact` action to download all of the workflow artifacts:
+```
+- uses: actions/download-artifact@v3
+```
+Or, specify an artifact name to download just a specific artifact:
+```
+- uses: actions/download-artifact@v3
+  with:
+    name: my-artifact-name
+```

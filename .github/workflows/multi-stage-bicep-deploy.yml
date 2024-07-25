@@ -8,6 +8,10 @@ permissions:
   contents: read
 
 jobs:
+  # Build the application
+  build:
+    uses: ./.github/workflows/build-aspnet-app.yml
+  
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +22,7 @@ jobs:
   # Deploy to the test environment.
   deploy-test:
     uses: ./.github/workflows/deploy-to-environment.yml
-    needs: lint
+    needs: [build, lint]
     with:
       environmentType: Test
       resourceGroupName: intrinsic-rg
@@ -30,7 +34,11 @@ jobs:
   # Deploy to the production environment.
   deploy-production:
     uses: ./.github/workflows/deploy-to-environment.yml
-    needs: deploy-test
+    # equivalent to array expression [lint, build, deploy-test]
+    needs: 
+    - lint
+    - build
+    - deploy-test
     with:
       environmentType: Prod
       resourceGroupName: intrinsic-rg
