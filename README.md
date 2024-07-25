@@ -54,6 +54,8 @@ az ad app federated-credential create `
    --id $id `
    --parameters '{\"name\":\"github-workflow-cred\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:mturczyn/github-actions:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}'
 ```
+If we use GitHub environment, subject would look like `repo:mturczyn/github-actions:environment:Prod` where `Prod` is name of GitHub environment.
+
 Create service principal in Azure for our created Microsoft Entra application:
 ```
 az ad sp create --id $appId
