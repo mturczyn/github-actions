@@ -1,0 +1,11 @@
+name: first-deployment
+
+# Manual trigger
+on: [workflow_dispatch]
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "placeholder step"
+        run: echo "Hello World!"
