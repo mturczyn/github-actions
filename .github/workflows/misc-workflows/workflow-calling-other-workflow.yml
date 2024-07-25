@@ -1,8 +1,0 @@
-on:
-  workflow_dispatch:
-
-jobs:
-  jobs:
-    uses: ./misc-workflows/script.yml
-    with:
-      message: Hello World!
