@@ -204,3 +204,56 @@ rollback:
   - run: |
       echo "Performing rollback steps..."
 ```
+
+# Reusing workflows
+
+We can create reusable sections of workflow definitions in separate YAML files. THen the reused workflow is called *called workflow* and workflow that uses it is called *caller workflow*.
+
+To tell GitHub actions that workflow can be called by other workflow we define its trigger as follows:
+```
+on:
+  workflow_call:
+```
+In the caller workflow, we refer to called workflow as follows:
+```
+jobs:
+  job:
+    uses: ./.github/workflow/script.yml
+```
+We can also pass parameters (inputs) to called workflow. We need to define them in called workflow:
+```
+on:
+  workflow_call:
+    inputs:
+      environmentType:
+        required: true
+        type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+```
+Then in called workflow we can reference input variables as such:
+```
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        echo Hello ${{ inputs.environmentType }}!
+```
+In caller workflow we pass variables with `with` keyword:
+```
+jobs:
+  job-test:
+    uses: ./.github/workflows/script.yml
+    with:
+      environmentType: Test
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_TEST }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+```
