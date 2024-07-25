@@ -1,0 +1,13 @@
+on:
+  workflow_call:
+    inputs:
+      message:
+        type: string
+
+jobs:
+  echo:
+    steps:
+    - run: echo ${{ inputs.message }}
+    - run: |
+        echo This step only runs if message is different from "Production"
+      if: inputs.message != 'Production'
