@@ -102,6 +102,19 @@ on:
 ```
 Latter approach gives more flexibility, as there can be either `branches` or `branches-ignore` defines.
 
+## Pul request event triggers
+
+We can also specify to execute workflow on pull request triggers in GitHub:
+```
+on: pull_request
+```
+or
+```
+on:
+  pull_request:
+    types: [closed]
+```
+
 ## Path filter on triggers
 
 We can also define changes to what paths would trigger the workflow:

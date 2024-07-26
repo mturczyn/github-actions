@@ -12,12 +12,9 @@ jobs:
   build:
     uses: ./.github/workflows/build-aspnet-app.yml
   
+  # Lint bicep code
   lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Run Bicep linter
-      run: az bicep build --file deploy/main.bicep
+    uses: ./.github/workflows/lint.yml
 
   # Deploy to the test environment.
   deploy-test:
