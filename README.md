@@ -114,6 +114,7 @@ on:
   pull_request:
     types: [closed]
 ```
+Workflows with such triggers can act, for example, as pull requests automated checks.
 
 ## Path filter on triggers
 
