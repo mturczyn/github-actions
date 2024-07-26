@@ -56,6 +56,8 @@ az ad app federated-credential create `
 ```
 If we use GitHub environment, subject would look like `repo:mturczyn/github-actions:environment:Prod` where `Prod` is name of GitHub environment.
 
+If we wanted to give federated credential to workflow running as pull request check, we would use such convention `repo:mturczyn/github-actions:pull_request`.
+
 Create service principal in Azure for our created Microsoft Entra application:
 ```
 az ad sp create --id $appId
@@ -106,10 +108,12 @@ Latter approach gives more flexibility, as there can be either `branches` or `br
 
 We can also specify to execute workflow on pull request triggers in GitHub:
 ```
+# run on pull request creation
 on: pull_request
 ```
 or
 ```
+# run on pull request close
 on:
   pull_request:
     types: [closed]
@@ -146,6 +150,11 @@ To change that default behaviour, we can use `concurrency` keyword. It needs to 
 ```
 concurrency: MyWorkflowWithLimitedConcurrency
 ```
+If we want to limit concurrency for workflow triggered by a pull requests, but still want parallel workflows execution from checks from different pull requests, we could use:
+```
+concurrency: ${{ github.event.number }}
+```
+`github.event.number` is number associated with pull request.
 
 ## Authenticating from workflow
 
@@ -332,4 +341,51 @@ Or, specify an artifact name to download just a specific artifact:
 - uses: actions/download-artifact@v3
   with:
     name: my-artifact-name
+```
+
+# Ephemeral environments
+
+Sometimes we need short-lived environments, for example create Azure environment for each pull request to test it.
+
+In order to do that, we need to define workflow that would run as pull request check. This workflow would create new ephemeral environment related to that pull request.
+
+After pull request is merged, ephemeral environment created for the pull request should be deleted along with its all resources.
+
+Examples of workflows creating ephemeral environemtns on pull requests can be found in `provision-ephemeral-environments`.
+
+# Template spec, modules and container registries
+
+When you publish a template spec from your own computer by using the Azure CLI, you use a command like the following:
+```
+az ts create --name StorageWithoutSAS --location westus3 --display-name "Storage account with SAS disabled" --description "This template spec creates a storage account, which is preconfigured to disable SAS authentication." --version 1 --template-file main.bicep
+```
+You can convert this Azure CLI command to a GitHub Actions step:
+```
+- name: Publish template spec
+  uses: azure/cli@v1
+  with:
+    inlineScript: |
+      az ts create \
+        --name StorageWithoutSAS \
+        --location westus3 \
+        --display-name "Storage account with SAS disabled" \
+        --description "This template spec creates a storage account, which is preconfigured to disable SAS authentication." \
+        --version 1 \
+        --template-file main.bicep
+```
+The workflow uses the same process to publish the template spec that you would use yourself.
+
+Similarly, when you publish a Bicep module from your own computer by using the Azure CLI, you use a command like the following:
+```
+az bicep publish --file module.bicep --target 'br:toycompany.azurecr.io/mymodules/myqueue:2'
+```
+You can convert this Azure CLI command to a GitHub Actions step, too:
+```
+- name: Publish Bicep module
+  uses: azure/cli@v1
+  with:
+    inlineScript: |
+      az bicep publish \
+        --file module.bicep \
+        --target 'br:toycompany.azurecr.io/mymodules/myqueue:2'
 ```
