@@ -4,4 +4,4 @@ on: pull_request
 
 jobs:
   job:
-    uses: ./misc-workflows/lint.yml
+    uses: ./.github/workflows/lint.yml
