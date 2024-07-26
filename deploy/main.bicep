@@ -14,6 +14,9 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
     capacity: 1
   }
   kind: 'linux'
+  properties: {
+    reserved: true
+  }
   tags: michalTestTags
 }
 
@@ -23,6 +26,9 @@ resource webapp 'Microsoft.Web/sites@2023-12-01' = {
   properties: {
     httpsOnly: true
     serverFarmId: appServicePlan.id
+    siteConfig: {
+      linuxFxVersion: 'node|14-lts'
+    }
   }
   kind: 'linux'
   tags: michalTestTags
