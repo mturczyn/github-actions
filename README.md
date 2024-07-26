@@ -1,118 +1,119 @@
-# Intro and basic info
+# Introduction and Basic Information
 
-Github stores its default workflows in special directory `.github\workflows`.
+GitHub stores its default workflows in a special directory `.github/workflows`.
 
-## Workload identity
+## Workload Identity
 
-When using Azure and GitHub, deployments are authenticated sing workload identity.
+When using Azure and GitHub, deployments are authenticated using workload identity.
 
-Github uses action named `azure/login` to lgoin into Azure, when running a workflow. In Azure, permission needs to be granted for workflow to wotk with authenticastion tokens.
+GitHub uses an action named `azure/login` to log into Azure when running a workflow. In Azure, permission needs to be granted for the workflow to work with authentication tokens.
 
 # Variables
 
-To use variables throughout entire workflow file we can define them right below `on` keyword as follows:
-```
+To use variables throughout the entire workflow file, we can define them right below the `on` keyword as follows:
+```yaml
 env:
   AZURE_RESOURCEGROUP_NAME: gh-actions
   AZURE_WEBAPP_NAME: webapp-gh-actions
 ```
-Then we can use it
-```
+Then we can use it like this:
+```yaml
 ${{ env.AZURE_RESOURCEGROUP_NAME }}
 ```
 There are some default environment variables to use:
 - `github.sha`: The identifier of the Git commit that triggered the workflow to execute.
-- `github.run_number`: A unique number for each run of a particular workflow in a repository
+- `github.run_number`: A unique number for each run of a particular workflow in a repository.
 
-## Secrets in variables
+## Secrets in Variables
 
-When secret values are used as variables, we can access them with
-```
+When secret values are used as variables, we can access them with:
+```yaml
 ${{ secrets.NAME_OF_THE_SECRET }}
 ```
 
-# Creating workload identity
+# Creating Workload Identity
 
 Workload identities are a feature of Microsoft Entra ID, which is a global identity service. Many companies use Microsoft Entra ID, and each company is called a tenant.
 
-By letting know Microsoft Entra ID about application, we create application registration in Microsoft Entra ID. An application registration represents the application in Microsoft Entra ID.
+By letting Microsoft Entra ID know about an application, we create an application registration in Microsoft Entra ID. An application registration represents the application in Microsoft Entra ID.
 
-An appliciton registration can have federated credentials associated with it. They enable supported services (such as GitHub) to use a Microsoft Entra ID application. This is effectively saying Microsoft Entra ID and supported service (like GitHub) to trust each other - this trust is called federation.
+An application registration can have federated credentials associated with it. They enable supported services (such as GitHub) to use a Microsoft Entra ID application. This effectively means that Microsoft Entra ID and the supported service (like GitHub) trust each other - this trust is called federation.
 
-To create workload identity, first, create Microsoft Entra Id application with AZ CLI command:
-```
+To create a workload identity, first, create a Microsoft Entra ID application with the Azure CLI command:
+```sh
 $result = az ad app create --display-name 'github-workflow'
 ```
-It returns data in JSON - we need `appId` and `id` properties:
+It returns data in JSON - we need the `appId` and `id` properties:
+```json
+"appId": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
+"id": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
 ```
-  "appId": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
-  "id": "9d09fd9e-eac3-4c57-b9ca-c0034f8e93d5",
-```
-Then use those values to execute command to create federated identity - below we use `$id`
-```
+Then use those values to execute a command to create federated identity - below we use `$id`
+```sh
 az ad app federated-credential create `
    --id $id `
    --parameters '{\"name\":\"github-workflow-cred\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:mturczyn/github-actions:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}'
 ```
-If we use GitHub environment, subject would look like `repo:mturczyn/github-actions:environment:Prod` where `Prod` is name of GitHub environment.
+If we use GitHub environment, the subject would look like `repo:mturczyn/github-actions:environment:Prod` where `Prod` is the name of the GitHub environment.
 
-If we wanted to give federated credential to workflow running as pull request check, we would use such convention `repo:mturczyn/github-actions:pull_request`.
+If we wanted to give federated credentials to a workflow running as a pull request check, we would use this convention: `repo:mturczyn/github-actions:pull_request`.
 
-Create service principal in Azure for our created Microsoft Entra application:
-```
+Create a service principal in Azure for our created Microsoft Entra application:
+```sh
 az ad sp create --id $appId
 ```
-Then we need to capture `appId` of above (let's assume we have `$servicePrincipalId` with that value) created service principal and use it below to create role assignment in Azure:
-```
+Then we need to capture the `appId` of the above-created service principal (let's assume we have `$servicePrincipalId` with that value) and use it below to create a role assignment in Azure:
+```sh
 az role assignment create `
    --assignee $servicePrincipalId `
    --role Contributor `
    --scope '/subscriptions/6c031f3a-0aa5-480d-b2ec-272b24779509/resourceGroups/intrinsic-rg'
 ```
-# Workflow triggers
 
-To define trigger we need to define `on` section on workflow, for example:
-```
+# Workflow Triggers
+
+To define a trigger, we need to define the `on` section in the workflow, for example:
+```yaml
 on:
   push:
     branches:
       - main
 ```
-Above defines, that the workflow would run on every change (push) to branch `main`.
+The above defines that the workflow will run on every change (push) to the branch `main`.
 
-To specify multiple branches to trigger workflow, we can use multiple branches names and also wildcard `**` (below push to branch starting with `release/` or `main` branch would trigger workflow)
-```
+To specify multiple branches to trigger the workflow, we can use multiple branch names and also the wildcard `**` (below, a push to a branch starting with `release/` or `main` branch would trigger the workflow):
+```yaml
 on:
   push:
     branches:
       - main
       - 'release/**'
 ```
-To exclude branch from triggers, we can use:
-```
+To exclude a branch from triggers, we can use:
+```yaml
 on:
   push:
     branches-ignore:
       - 'feature/**'
 ```
-or (note `!` before branch name - this tells to exclude this branch from triggering pipeline):
-```
+or (note the `!` before the branch name - this tells to exclude this branch from triggering the pipeline):
+```yaml
 on:
   push:
     branches:
       - '!feature/**'
 ```
-Latter approach gives more flexibility, as there can be either `branches` or `branches-ignore` defines.
+The latter approach gives more flexibility, as there can be either `branches` or `branches-ignore` defined.
 
-## Pul request event triggers
+## Pull Request Event Triggers
 
-We can also specify to execute workflow on pull request triggers in GitHub:
-```
+We can also specify to execute the workflow on pull request triggers in GitHub:
+```yaml
 # run on pull request creation
 on: pull_request
 ```
 or
-```
+```yaml
 # run on pull request close
 on:
   pull_request:
@@ -120,10 +121,10 @@ on:
 ```
 Workflows with such triggers can act, for example, as pull requests automated checks.
 
-## Path filter on triggers
+## Path Filter on Triggers
 
 We can also define changes to what paths would trigger the workflow:
-```
+```yaml
 on:
   push:
     paths:
@@ -132,93 +133,93 @@ on:
 ```
 We can also use `paths-ignore`, which works in a similar manner to the `branches-ignore` keyword. However, we can't use `paths` and `paths-ignore` in the same trigger.
 
-## Schedule trigger
+## Schedule Trigger
 
-To run workflow on schedule, we can define trigger as follows:'
-```
+To run a workflow on a schedule, we can define the trigger as follows:
+```yaml
 on:
   schedule:
     - cron: '0 0 * * *'
 ```
 In this example, `0 0 * * *` means run every day at midnight UTC.
 
-## Concurrency control
+## Concurrency Control
 
-By default, GitHub Actions allows multiple instance of your workflow to run simultaneously. For example multiple commits in short time to the same branch would trigger multiple workflow executions.
+By default, GitHub Actions allows multiple instances of your workflow to run simultaneously. For example, multiple commits in a short time to the same branch would trigger multiple workflow executions.
 
-To change that default behaviour, we can use `concurrency` keyword. It needs to be specified to a string that is consistent across all runs of the workflow. Usually it's just hardcoded string:
-```
+To change that default behavior, we can use the `concurrency` keyword. It needs to be specified to a string that is consistent across all runs of the workflow. Usually, it's just a hardcoded string:
+```yaml
 concurrency: MyWorkflowWithLimitedConcurrency
 ```
-If we want to limit concurrency for workflow triggered by a pull requests, but still want parallel workflows execution from checks from different pull requests, we could use:
-```
+If we want to limit concurrency for workflows triggered by pull requests but still want parallel workflow execution from checks from different pull requests, we could use:
+```yaml
 concurrency: ${{ github.event.number }}
 ```
-`github.event.number` is number associated with pull request.
+`github.event.number` is the number associated with the pull request.
 
-## Authenticating from workflow
+## Authenticating from Workflow
 
-To request token in a workflow, we need to add `permissions` property:
-```
+To request a token in a workflow, we need to add the `permissions` property:
+```yaml
 permissions:
   id-token: write
   contents: read
 ```
 
-# Controlling jobs execution in workflow
+# Controlling Jobs Execution in Workflow
 
-If one job can be executed only when other job finishes successfully, we can express this with `needs: jobName`, for example:
-```
+If one job can be executed only when another job finishes successfully, we can express this with `needs: jobName`, for example:
+```yaml
 name: learn-github-actions
 on: [push]
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Here is where you'd perform the validation steps."
+      - run: echo "Here is where we'd perform the validation steps."
   deployUS: 
     runs-on: windows-latest
     needs: validate
     steps:
-      - run: echo "Here is where you'd perform the steps to deploy to the US region."
+      - run: echo "Here is where we'd perform the steps to deploy to the US region."
   deployEurope: 
     runs-on: ubuntu-latest
     needs: validate
     steps:
-      - run: echo "Here is where you'd perform the steps to deploy to the European region."
+      - run: echo "Here is where we'd perform the steps to deploy to the European region."
 ```
-If we need to rollback some changes when the pipeline fails, we can apply it using `if` keyword:
-```
+If we need to rollback some changes when the pipeline fails, we can apply it using the `if` keyword:
+```yaml
 name: learn-github-actions
 on: [push]
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Here is where you'd perform the validation steps."
+      - run: echo "Here is where we'd perform the validation steps."
   deploy: 
     runs-on: windows-latest
     needs: validate
     steps:
-      - run: echo "Here is where you'd perform the steps to deploy."
+      - run: echo "Here is where we'd perform the steps to deploy."
   rollback: 
     runs-on: ubuntu-latest
     needs: deploy
     if: ${{ failure() }}
     steps:
-      - run: echo "Here is where you'd perform the steps to roll back a failure."
+      - run: echo "Here is where we'd perform the steps to roll back a failure."
 ```
 
 # Environments
 
-In GitHub web page there is possibility to create *environments* (similairly to Azure DevOps).
+In the GitHub web page, there is a possibility to create *environments* (similarly to Azure DevOps).
 
-In workflow, we reference the environment by `environment: Prod`.
+In a workflow, we reference the environment by `environment: Prod`.
 
-# Rollback jobs
+## Rollback Jobs
 
-To rollback changes we could use following job:
-```
+To rollback changes we could use the following job:
+```yaml
 rollback: 
   runs-on: ubuntu-latest
   needs: smoke-test
@@ -228,27 +229,29 @@ rollback:
       echo "Performing rollback steps..."
 ```
 
-# Reusing workflows
+# Reusing Workflows
 
-We can create reusable sections of workflow definitions in separate YAML files. THen the reused workflow is called *called workflow* and workflow that uses it is called *caller workflow*.
+We can create reusable sections of workflow definitions in separate YAML files. Then the reused workflow is called the *called workflow* and the workflow that uses it is called the *caller workflow*.
 
-To tell GitHub actions that workflow can be called by other workflow we define its trigger as follows:
-```
+To tell GitHub Actions that a workflow can be called by another workflow, we define its trigger as follows:
+```yaml
 on:
   workflow_call:
 ```
-In the caller workflow, we refer to called workflow as follows:
-```
+In the caller workflow, we refer to the called workflow as follows:
+```yaml
 jobs:
   job:
     uses: ./.github/workflow/script.yml
 ```
-We can also pass parameters (inputs) to called workflow. We need to define them in called workflow:
-```
+We can also pass parameters (inputs) to the called workflow. We need to define them in the called workflow:
+```yaml
 on:
   workflow_call:
     inputs:
-      environmentType:
+     
+
+ environmentType:
         required: true
         type: string
     secrets:
@@ -259,8 +262,8 @@ on:
       AZURE_SUBSCRIPTION_ID:
         required: true
 ```
-Then in called workflow we can reference input variables as such:
-```
+Then in the called workflow, we can reference input variables like this:
+```yaml
 jobs:
   say-hello:
     runs-on: ubuntu-latest
@@ -268,8 +271,8 @@ jobs:
     - run: |
         echo Hello ${{ inputs.environmentType }}!
 ```
-In caller workflow we pass variables with `with` keyword:
-```
+In the caller workflow, we pass variables with the `with` keyword:
+```yaml
 jobs:
   job-test:
     uses: ./.github/workflows/script.yml
@@ -281,15 +284,15 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 ```
 
-# Output variables values across workflow
+# Output Variable Values Across Workflow
 
-To define output variable from one job, we need to define 
-```
+To define an output variable from one job, we need to define:
+```yaml
   outputs:
     appServiceAppName: ${{ steps.deploy.outputs.appServiceAppName }}
 ```
-where `deploy` is `id` of the step (we also need to define that `id`), full example:
-```
+where `deploy` is the `id` of the step (we also need to define that `id`). Full example:
+```yaml
 job1:
   runs-on: ubuntu-latest
   outputs:
@@ -311,8 +314,8 @@ job1:
       resourceGroupName: Playground1
       template: ./deploy/main.bicep
 ```
-In later job we can reference this output variable with `needs.job1.outputs.appServiceAppName` which requires defining also `needs: job1` property. Full example:
-```
+In a later job, we can reference this output variable with `needs.job1.outputs.appServiceAppName`, which requires defining also the `needs: job1` property. Full example:
+```yaml
 job2:
   needs: job1
   runs-on: ubuntu-latest
@@ -321,10 +324,10 @@ job2:
       echo "${{needs.job1.outputs.appServiceAppName}}"
 ```
 
-# Workflow artifacts
+# Workflow Artifacts
 
 *Workflow artifacts* provide a way to store files in GitHub Actions, and they're associated with the particular run of your workflow. You use the `actions/upload-artifact` workflow action to instruct GitHub Actions to upload a file or folder from the runner's file system as a workflow artifact:
-```
+```yaml
 - name: Upload folder as a workflow artifact
   uses: actions/upload-artifact@v3
   with:
@@ -333,34 +336,34 @@ job2:
 ```
 
 Use the `actions/download-artifact` action to download all of the workflow artifacts:
-```
+```yaml
 - uses: actions/download-artifact@v3
 ```
 Or, specify an artifact name to download just a specific artifact:
-```
+```yaml
 - uses: actions/download-artifact@v3
   with:
     name: my-artifact-name
 ```
 
-# Ephemeral environments
+# Ephemeral Environments
 
-Sometimes we need short-lived environments, for example create Azure environment for each pull request to test it.
+Sometimes we need short-lived environments, for example to create an Azure environment for each pull request to test it.
 
-In order to do that, we need to define workflow that would run as pull request check. This workflow would create new ephemeral environment related to that pull request.
+In order to do that, we need to define a workflow that would run as a pull request check. This workflow would create a new ephemeral environment related to that pull request.
 
-After pull request is merged, ephemeral environment created for the pull request should be deleted along with its all resources.
+After the pull request is merged, the ephemeral environment created for the pull request should be deleted along with all its resources.
 
-Examples of workflows creating ephemeral environemtns on pull requests can be found in `provision-ephemeral-environments`.
+Examples of workflows creating ephemeral environments on pull requests can be found in `provision-ephemeral-environments`.
 
-# Template spec, modules and container registries
+# Template Spec, Modules, and Container Registries
 
-When you publish a template spec from your own computer by using the Azure CLI, you use a command like the following:
-```
+When we publish a template spec from our own computer by using the Azure CLI, we use a command like the following:
+```sh
 az ts create --name StorageWithoutSAS --location westus3 --display-name "Storage account with SAS disabled" --description "This template spec creates a storage account, which is preconfigured to disable SAS authentication." --version 1 --template-file main.bicep
 ```
-You can convert this Azure CLI command to a GitHub Actions step:
-```
+We can convert this Azure CLI command to a GitHub Actions step:
+```yaml
 - name: Publish template spec
   uses: azure/cli@v1
   with:
@@ -373,14 +376,14 @@ You can convert this Azure CLI command to a GitHub Actions step:
         --version 1 \
         --template-file main.bicep
 ```
-The workflow uses the same process to publish the template spec that you would use yourself.
+The workflow uses the same process to publish the template spec that we would use ourselves.
 
-Similarly, when you publish a Bicep module from your own computer by using the Azure CLI, you use a command like the following:
-```
+Similarly, when we publish a Bicep module from our own computer by using the Azure CLI, we use a command like the following:
+```sh
 az bicep publish --file module.bicep --target 'br:toycompany.azurecr.io/mymodules/myqueue:2'
 ```
-You can convert this Azure CLI command to a GitHub Actions step, too:
-```
+We can convert this Azure CLI command to a GitHub Actions step too:
+```yaml
 - name: Publish Bicep module
   uses: azure/cli@v1
   with:
