@@ -3,7 +3,6 @@ param environmentType string
 
 var resourceGroupLocation = resourceGroup().location
 var resourceNamePrefix = 'github-bicep-${toLower(environmentType)}'
-var appServiceAppLinuxFrameworkVersion = 'node|14-lts'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${resourceNamePrefix}-asp'
