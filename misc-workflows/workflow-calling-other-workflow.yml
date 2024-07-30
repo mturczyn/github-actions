@@ -2,7 +2,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  jobs:
+  job:
     uses: ./misc-workflows/script.yml
     with:
       message: Hello World!

@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 env:
-    AZURE_RESOURCEGROUP_NAME: intrinsic-rg
-    ENVIRONMENT: nonprod
+  AZURE_RESOURCEGROUP_NAME: intrinsic-rg
+  ENVIRONMENT: nonprod
 
 jobs:
   deploy:
